@@ -1,0 +1,6 @@
+#include "ChiMacros/lua_register_macro.h"
+
+RegisterFunction(chiAffineDecompositionerCreate)
+RegisterFunction(chiAffineDecompositionerInitialize)
+RegisterFunction(chiAffineDecompositionSetProperty)
+RegisterFunction(chiAffineDecompositionReadPODModes)
