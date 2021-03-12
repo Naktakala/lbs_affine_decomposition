@@ -13,20 +13,22 @@ void LinearBoltzmann::AffineDecompositioner::
                                 const LBSGroupset &groupset)
 {
   auto& chi_log = ChiLog::GetInstance();
-
   chi_log.Log() << "Creating total interaction operator.";
 
+  //============================================= Get FE spatial discretization
   auto fe = std::dynamic_pointer_cast<SpatialDiscretization_FE>(discretization);
   if (not fe) throw std::logic_error(std::string(__FUNCTION__) +
                                      " error using spatial discretization.");
 
+  //============================================= Define some types
   typedef chi_math::DynamicMatrix<double> Matrix;
   typedef chi_math::DynamicVector<double> Vector;
-  auto dof_handler = groupset.psi_uk_man;
   typedef chi_math::finite_element::UnitIntegralData CellMatrices;
   typedef std::vector<Matrix> VecMats;
   typedef std::vector<VecMats> MatMats;
+  auto dof_handler = groupset.psi_uk_man;
 
+  //============================================= Lambda to extract DOFs
   auto Extractor_DOFs = [fe,dof_handler](
     const chi_mesh::Cell& cell, const CellMatrices& fe_matrices,
     const std::vector<double>& ref_U, size_t d, unsigned int g)
@@ -42,16 +44,17 @@ void LinearBoltzmann::AffineDecompositioner::
     return U;
   };
 
+  //============================================= Open the file
   const std::string file_name = file_base_name + ".top";
   std::ofstream file(file_name, std::ofstream::out);
 
   if (not file.is_open())
   {
-    chi_log.Log(LOG_ALLWARNING)
-      << __FUNCTION__ << "Failed to open " << file_name;
+    chi_log.Log(LOG_ALLERROR) << __FUNCTION__ << "Failed to open " << file_name;
     return;
   } //Puke
 
+  //============================================= Start building
   const size_t r          = options.num_modes;
   const size_t num_angles = groupset.quadrature->abscissae.size();
 
