@@ -39,6 +39,10 @@ private:
 public:
   void WriteTotalInteractionOperator(const std::string& file_base_name,
                                      const LBSGroupset& groupset);
+  void WriteTransferInteractionOperator(const std::string& file_base_name,
+                                        const LBSGroupset& groupset);
+  void WriteStreamingOperator(const std::string& file_base_name,
+                              const LBSGroupset& groupset);
 };
 
 }

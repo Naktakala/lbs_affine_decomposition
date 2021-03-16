@@ -7,7 +7,7 @@
 #include "chi_log.h"
 
 //###################################################################
-/**Creates and write the total interaction operator.*/
+/**Creates and writes the total interaction operator.*/
 void LinearBoltzmann::AffineDecompositioner::
   WriteTotalInteractionOperator(const std::string &file_base_name,
                                 const LBSGroupset &groupset)
@@ -33,19 +33,19 @@ void LinearBoltzmann::AffineDecompositioner::
     const chi_mesh::Cell& cell, const CellMatrices& fe_matrices,
     const std::vector<double>& ref_U, size_t d, unsigned int g)
   {
-    Vector U(fe_matrices.NumNodes(),0.0);
+    Vector U_local(fe_matrices.NumNodes(),0.0);
 
     for (unsigned n=0; n < fe_matrices.NumNodes(); ++n) //node
     {
       size_t dof_index = fe->MapDOFLocal(cell, n, dof_handler, d, g);
-      U[n] = ref_U[dof_index];
+      U_local[n] = ref_U[dof_index];
     }
 
-    return U;
+    return U_local;
   };
 
   //============================================= Open the file
-  const std::string file_name = file_base_name + ".top";
+  const std::string file_name = file_base_name + ".totalop";
   std::ofstream file(file_name, std::ofstream::out);
 
   if (not file.is_open())
@@ -53,20 +53,25 @@ void LinearBoltzmann::AffineDecompositioner::
     chi_log.Log(LOG_ALLERROR) << __FUNCTION__ << "Failed to open " << file_name;
     return;
   } //Puke
+  file << "Data structure:\n"
+       << "Material k Direction d Row i Column j Group g Value M_kdijg\n";
 
   //============================================= Start building
   const size_t r          = options.num_modes;
   const size_t num_angles = groupset.quadrature->abscissae.size();
 
   for (auto& k : unique_material_ids)
-  {
-    file << "Material " << k << " ";
-    for (unsigned int g=0; g<groupset.groups.size(); ++g)
+    for (size_t d=0; d<num_angles; ++d) //direction
       for (size_t i=0; i<r; ++i)
         for (size_t j=0; j<r; ++j)
-          for (size_t d=0; d<num_angles; ++d) //direction
+          for (unsigned int g=0; g<groupset.groups.size(); ++g)
+          {
+            double M_kdijg = 0.0;
+
             for (const auto& cell : grid->local_cells)
             {
+              if (cell.material_id != k) continue;
+
               const auto&   fe_matrices = fe->GetUnitIntegrals(cell);
 
               Matrix mass_C(fe_matrices.GetIntV_shapeI_shapeJ());
@@ -76,19 +81,17 @@ void LinearBoltzmann::AffineDecompositioner::
               Vector aux_i = mass_C * U_idc;
               Vector aux_j = mass_C * U_jdc;
 
-              if (cell.material_id == k)
-              {
-                double M_ij;
-                if (options.projection_mode == ProjectionMode::Petrov_Galerkin)
-                  M_ij = aux_i.Dot(aux_j);
-                else
-                  M_ij = U_idc.Dot(aux_j);
+              if (options.projection_mode == ProjectionMode::Petrov_Galerkin)
+                M_kdijg += aux_i.Dot(aux_j);
+              else
+                M_kdijg += U_idc.Dot(aux_j);
 
-                file << d << " " << i << " " << j << " " << M_ij << "\n";
-              }//if material
             }//for cell
 
-  }//for material
+            file << k << " " << d << " "
+                 << i << " " << j << " "
+                 << g << " " << M_kdijg << "\n";
+          }//for g
 
   file.close();
 

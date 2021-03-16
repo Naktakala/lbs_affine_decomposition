@@ -19,6 +19,8 @@ void LinearBoltzmann::AffineDecompositioner::
   }
 
   WriteTotalInteractionOperator(file_base_name,groupset);
+  WriteTransferInteractionOperator(file_base_name,groupset);
+  WriteStreamingOperator(file_base_name,groupset);
 }
 
 //###################################################################
